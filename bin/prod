@@ -1,0 +1,6 @@
+rm -fr ./public &&
+mkdir public &&
+cp ./src/manifest.json ./public/manifest.json &&
+cp -R ./src/assets/ ./public/assets/ &&
+pug -O "{doctype: 'html'}" views --out ./public/ &&
+webpack --config webpack.config.js
