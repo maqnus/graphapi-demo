@@ -1,6 +1,9 @@
 # graphapi-demo
 Post to facebook using Graph API
 
+[![demo video](https://i.ytimg.com/vi/Jx_S-fXogRo/hqdefault.jpg?sqp=-oaymwEXCPYBEIoBSFryq4qpAwkIARUAAIhCGAE=&rs=AOn4CLApmrjL0VaaKrREYxWalERmnmYCxw)](https://youtu.be/Jx_S-fXogRo)
+
+
 ## Create Facebook App
 [Facebook for Developers](https://developers.facebook.com/)
 
