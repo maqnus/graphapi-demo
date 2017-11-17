@@ -7748,22 +7748,389 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 var App = function (_Component) {
     _inherits(App, _Component);
 
-    function App() {
+    function App(props) {
         _classCallCheck(this, App);
 
-        return _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).apply(this, arguments));
+        var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this, props));
+
+        _this.state = {
+            devmode: false,
+            user_logged_in: false,
+            user_id: '',
+            user_access_token: '',
+            user_name: '',
+            pages: null,
+            selected_page_id: '',
+            page_access_token: '',
+            message: '',
+            post_link: '',
+            single_photo_url: '',
+            single_photo_caption: ''
+        };
+        return _this;
     }
 
     _createClass(App, [{
-        key: "render",
-        value: function render() {
+        key: 'componentDidMount',
+        value: function componentDidMount() {
+            var _this2 = this;
+
+            new Promise(function (resolve, reject) {
+                return FB.getLoginStatus(function (response) {
+                    console.log('checking login status...');
+                    if (response.status === 'connected') {
+                        //console.log(response, response.authResponse.userID);
+                        resolve(response.authResponse.userID);
+                    } else {
+                        console.log('failed to get user access token', response);
+                        reject();
+                    }
+                });
+            }).then(function (response) {
+                console.log('user ' + response + ' is logged in');
+                _this2.setState({
+                    user_id: response.userID,
+                    user_access_token: response.accessToken,
+                    user_logged_in: true
+                });
+            }).catch(function () {
+                console.log('user is not logged in');
+            });
+        }
+    }, {
+        key: 'logIn',
+        value: function logIn() {
+            var _this3 = this;
+
+            new Promise(function (resolve, reject) {
+                FB.login(function (response) {
+                    if (response.authResponse) {
+                        console.log('Welcome!  Fetching your information.... ');
+                        FB.api('/me', function (response) {
+                            console.log('Good to see you, ' + response.name + '.');
+                            resolve(response);
+                        });
+                    } else {
+                        console.log('User cancelled login or did not fully authorize.');
+                        reject(response);
+                    }
+                });
+            }).then(function (response) {
+                return _this3.main(response);
+            });
+        }
+    }, {
+        key: 'logOut',
+        value: function logOut() {
+            var _this4 = this;
+
+            new Promise(function (resolve, reject) {
+                FB.logout(function (response) {
+                    console.log('Goodbye.');
+                    resolve();
+                });
+            }).then(function () {
+                _this4.setState({ user_logged_in: false });
+            });
+        }
+    }, {
+        key: 'getUserAccessToken',
+        value: function getUserAccessToken() {
+            var _this5 = this;
+
+            return new Promise(function (resolve, reject) {
+                return FB.getLoginStatus(function (response) {
+                    console.log('waiting for user access token...');
+                    if (response.status === 'connected') {
+                        var accessToken = response.authResponse.accessToken;
+                        console.log('got user access token', accessToken);
+                        resolve(accessToken);
+                    } else {
+                        console.log('failed to get user access token', response);
+                        reject(response);
+                    }
+                });
+            }).then(function (response) {
+                return _this5.setState({ user_access_token: response });
+            });
+        }
+    }, {
+        key: 'getPagesWhereUserIsAdmin',
+        value: function getPagesWhereUserIsAdmin() {
+            var _this6 = this;
+
+            return new Promise(function (resolve, reject) {
+                return FB.api('/me/accounts', {
+                    fields: 'manage_pages,name'
+                }, function (response) {
+                    if (!response || response.error) {
+                        console.log('failed to get pages where user is admin: ', response);
+                        reject(response);
+                    } else {
+                        console.log('got pages where user is admin: ', response);
+                        resolve(response.data);
+                    }
+                });
+            }).then(function (pages) {
+                _this6.setState({
+                    "pages": pages,
+                    "selected_page_id": pages[0].id
+                });
+            });
+        }
+    }, {
+        key: 'getPageAccessToken',
+        value: function getPageAccessToken() {
+            var _this7 = this;
+
+            return new Promise(function (resolve, reject) {
+                return FB.api(_this7.state.selected_page_id, 'GET', {
+                    fields: 'access_token'
+                }, function (response) {
+                    console.log('waiting for page access token...');
+                    if (!response || response.error) {
+                        console.log('failed to get page access token', response);
+                        reject(response);
+                    } else {
+                        console.log('current pages access token', response.access_token);
+                        resolve(response.access_token);
+                    }
+                });
+            });
+        }
+    }, {
+        key: 'postToPage',
+        value: function postToPage() {
+            var _this8 = this;
+
+            this.getPageAccessToken().then(function (token) {
+                return _this8.setState({ "page_access_token": token });
+            }).then(function () {
+                return new Promise(function (resolve, reject) {
+                    var data = {
+                        message: _this8.state.message,
+                        link: _this8.state.post_link,
+                        access_token: _this8.state.page_access_token,
+                        scope: 'publish_actions'
+                    };
+                    console.log('trying to post', data);
+                    return FB.api('v2.11/' + _this8.state.selected_page_id + '/feed', 'POST', data, function (response) {
+                        if (!response || response.error) {
+                            alert('Error occured');
+                            reject(response);
+                        } else {
+                            _this8.setState({ "message": '' });
+                            console.log('Post ID: ' + response.id);
+                            alert('Post ID: ' + response.id);
+                            resolve(response);
+                        }
+                    });
+                });
+            });
+        }
+    }, {
+        key: 'renderSelectGroupId',
+        value: function renderSelectGroupId() {
+            var _this9 = this;
+
+            var options = this.state.pages.map(function (opt) {
+                return _react2.default.createElement(
+                    'option',
+                    { key: opt.id, value: opt.id },
+                    opt.name
+                );
+            });
             return _react2.default.createElement(
-                "div",
-                { className: "container" },
+                'select',
+                { id: 'pageIdSelect', onChange: function onChange(e) {
+                        _this9.setState({
+                            "selected_page_id": e.target.selectedOptions[0].value
+                        });
+                        _this9.getPageAccessToken().then(function (token) {
+                            return _this9.setState({
+                                "page_access_token": token
+                            });
+                        });
+                    } },
+                options
+            );
+        }
+    }, {
+        key: 'main',
+        value: function main(loginResponse) {
+            var _this10 = this;
+
+            this.setState({
+                user_id: loginResponse.id,
+                user_name: loginResponse.name,
+                user_logged_in: true
+            });
+            this.getUserAccessToken();
+            this.getPagesWhereUserIsAdmin().then(function () {
+                _this10.getPageAccessToken().then(function (token) {
+                    return _this10.setState({
+                        "page_access_token": token
+                    });
+                });
+            });
+        }
+    }, {
+        key: 'getUserId',
+        value: function getUserId() {
+            var _this11 = this;
+
+            return new Promise(function (resolve, reject) {
+                return FB.getLoginStatus(function (response) {
+                    console.log('waiting for user id...');
+                    if (response.status === 'connected') {
+                        var id = response.authResponse.userID;
+                        console.log('got user id', response, response.authResponse.userID);
+                        resolve(id);
+                    } else {
+                        console.log('failed to get user access token', response);
+                        reject(response);
+                    }
+                });
+            }).then(function (id) {
+                return _this11.setState({ user_id: id });
+            });
+        }
+    }, {
+        key: 'render',
+        value: function render() {
+            var _this12 = this;
+
+            return _react2.default.createElement(
+                'div',
+                { className: 'container' },
                 _react2.default.createElement(
-                    "h1",
+                    'h1',
                     null,
-                    "Post to facebook"
+                    'Post to facebook'
+                ),
+                _react2.default.createElement(
+                    'button',
+                    { onClick: this.setState({ devmode: !this.state.devmode }) },
+                    'Toggle devmode'
+                ),
+                this.state.user_logged_in && _react2.default.createElement(
+                    'button',
+                    { onClick: this.logOut(), type: 'button' },
+                    'Logout'
+                ),
+                !this.state.user_logged_in && _react2.default.createElement(
+                    'button',
+                    { onClick: this.logIn(), type: 'button' },
+                    'Login'
+                ),
+                this.state.user_logged_in && _react2.default.createElement(
+                    'form',
+                    { onSubmit: function onSubmit(event) {
+                            return event.preventDefault();
+                        } },
+                    _react2.default.createElement(
+                        'p',
+                        null,
+                        'Start by selecting which page you want to post to'
+                    ),
+                    _react2.default.createElement(
+                        'ul',
+                        null,
+                        this.state.devmode && _react2.default.createElement(
+                            'li',
+                            null,
+                            _react2.default.createElement(
+                                'label',
+                                { htmlFor: 'userIdInput' },
+                                'User ID'
+                            ),
+                            _react2.default.createElement('input', { type: 'text', id: 'userIdInput', value: this.state.user_id, onChange: function onChange(e) {
+                                    return _this12.setState({ user_access_token: e.target.value });
+                                } })
+                        ),
+                        this.state.devmode && _react2.default.createElement(
+                            'li',
+                            null,
+                            _react2.default.createElement(
+                                'label',
+                                { htmlFor: 'userAccessTokenInput' },
+                                'User Access Token'
+                            ),
+                            _react2.default.createElement('input', { type: 'text', id: 'userAccessTokenInput', value: this.state.user_access_token, onChange: function onChange(e) {
+                                    return _this12.setState({ user_access_token: e.target.value });
+                                } })
+                        ),
+                        this.state.pages && _react2.default.createElement(
+                            'li',
+                            null,
+                            _react2.default.createElement(
+                                'label',
+                                { htmlFor: 'pageIdSelect' },
+                                'Your pages:'
+                            ),
+                            this.state.selected_page_id && this.state.devmode && _react2.default.createElement('input', { type: 'text', id: 'pageIdInput', value: this.state.selected_page_id, onChange: function onChange(e) {
+                                    return _this12.setState({ selected_page_id: e.target.value });
+                                } }),
+                            this.renderSelectGroupId()
+                        ),
+                        _react2.default.createElement(
+                            'li',
+                            null,
+                            _react2.default.createElement(
+                                'label',
+                                { htmlFor: 'postLink' },
+                                'postLink'
+                            ),
+                            _react2.default.createElement('input', { type: 'text', id: 'postLink', value: this.state.post_link, onChange: function onChange(e) {
+                                    return _this12.setState({ post_link: e.target.value });
+                                } })
+                        ),
+                        this.state.devmode && _react2.default.createElement(
+                            'li',
+                            null,
+                            _react2.default.createElement(
+                                'label',
+                                { htmlFor: 'pageAccessTokenInput' },
+                                'Page Access Token'
+                            ),
+                            _react2.default.createElement('input', { type: 'text', id: 'pageAccessTokenInput', value: this.state.page_access_token, onChange: function onChange(e) {
+                                    return _this12.setState({ page_access_token: e.target.value });
+                                } }),
+                            _react2.default.createElement(
+                                'button',
+                                { onClick: this.getPageAccessToken().then(function (token) {
+                                        return _this12.setState({ "page_access_token": token });
+                                    }) },
+                                'getPageAccessToken'
+                            )
+                        ),
+                        _react2.default.createElement(
+                            'li',
+                            null,
+                            _react2.default.createElement(
+                                'label',
+                                { htmlFor: 'messageInput' },
+                                'Message'
+                            ),
+                            _react2.default.createElement('textarea', { id: 'messageInput', defaultValue: this.state.message, onChange: function onChange(e) {
+                                    return _this12.setState({ message: e.target.value });
+                                } })
+                        )
+                    ),
+                    _react2.default.createElement(
+                        'button',
+                        { onClick: this.postToPage() },
+                        'Post message'
+                    )
+                ),
+                this.state.devmode && _react2.default.createElement(
+                    'div',
+                    null,
+                    _react2.default.createElement(
+                        'code',
+                        null,
+                        JSON.stringify(this.state, null, 2)
+                    )
                 )
             );
         }
