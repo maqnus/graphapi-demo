@@ -8010,17 +8010,23 @@ var App = function (_Component) {
                 ),
                 _react2.default.createElement(
                     'button',
-                    { onClick: this.setState({ devmode: !this.state.devmode }) },
+                    { onClick: function onClick() {
+                            return _this12.setState({ devmode: !_this12.state.devmode });
+                        } },
                     'Toggle devmode'
                 ),
                 this.state.user_logged_in && _react2.default.createElement(
                     'button',
-                    { onClick: this.logOut(), type: 'button' },
+                    { onClick: function onClick() {
+                            return _this12.logOut();
+                        }, type: 'button' },
                     'Logout'
                 ),
                 !this.state.user_logged_in && _react2.default.createElement(
                     'button',
-                    { onClick: this.logIn(), type: 'button' },
+                    { onClick: function onClick() {
+                            return _this12.logIn();
+                        }, type: 'button' },
                     'Login'
                 ),
                 this.state.user_logged_in && _react2.default.createElement(
@@ -8098,9 +8104,11 @@ var App = function (_Component) {
                                 } }),
                             _react2.default.createElement(
                                 'button',
-                                { onClick: this.getPageAccessToken().then(function (token) {
-                                        return _this12.setState({ "page_access_token": token });
-                                    }) },
+                                { onClick: function onClick() {
+                                        return _this12.getPageAccessToken().then(function (token) {
+                                            return _this12.setState({ "page_access_token": token });
+                                        });
+                                    } },
                                 'getPageAccessToken'
                             )
                         ),
@@ -8119,7 +8127,9 @@ var App = function (_Component) {
                     ),
                     _react2.default.createElement(
                         'button',
-                        { onClick: this.postToPage() },
+                        { onClick: function onClick() {
+                                return _this12.postToPage();
+                            } },
                         'Post message'
                     )
                 ),
